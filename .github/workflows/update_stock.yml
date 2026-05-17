@@ -1,8 +1,8 @@
 name: Update Stock
 on:
   schedule:
-    - cron: '0 5 * * *'  # ogni giorno alle 05:00 UTC (07:00 ora italiana)
-  workflow_dispatch:      # permette di lanciarlo manualmente
+    - cron: '0 5 * * *'
+  workflow_dispatch:
 jobs:
   update-stock:
     runs-on: ubuntu-latest
@@ -16,21 +16,29 @@ jobs:
             -H "Authorization: Bearer d2gckrl3fg107xe8y6xiqfi51h0qmn8y" \
             "https://api.action-wear.com/rest/it/V1/stockall" \
             -o export_stockall.json
+          echo "Primi 500 caratteri della risposta:"
+          head -c 500 export_stockall.json
 
       - name: Debug struttura API
         run: |
           python3 << 'EOF'
           import json
           with open('export_stockall.json') as f:
-              raw = json.load(f)
-          print("Tipo root:", type(raw).__name__)
-          if isinstance(raw, dict):
-              print("Chiavi root:", list(raw.keys())[:10])
-              for k, v in list(raw.items())[:2]:
-                  print(f"  [{k}] tipo={type(v).__name__}, valore={str(v)[:200]}")
-          elif isinstance(raw, list):
-              print("Lista, lunghezza:", len(raw))
-              print("Primo elemento:", str(raw[0])[:300] if raw else "vuota")
+              content = f.read()
+          print("Primi 300 caratteri raw:", repr(content[:300]))
+          try:
+              raw = json.loads(content)
+              print("Tipo root:", type(raw).__name__)
+              if isinstance(raw, dict):
+                  print("Chiavi root:", list(raw.keys())[:10])
+                  for k, v in list(raw.items())[:2]:
+                      print(f"  [{k}] tipo={type(v).__name__}, valore={str(v)[:200]}")
+              elif isinstance(raw, list):
+                  print("Lista, lunghezza:", len(raw))
+                  print("Primo elemento:", str(raw[0])[:300] if raw else "vuota")
+          except Exception as e:
+              print("ERRORE parsing JSON:", e)
+              print("Contenuto completo:", content[:1000])
           EOF
 
       - name: Build stock_map.json
@@ -42,44 +50,31 @@ jobs:
 
           stock_map = {}
 
-          # Caso 1: root è dict con chiave 'tabular' -> dict di SKU
           if isinstance(raw, dict) and 'tabular' in raw and isinstance(raw['tabular'], dict):
               for sku, data in raw['tabular'].items():
-                  if not isinstance(data, dict):
-                      continue
+                  if not isinstance(data, dict): continue
                   avail = int(data.get('available', 0) or 0)
                   in_arrivo = int(data.get('supplier_1', 0) or 0) + int(data.get('supplier_2', 0) or 0)
                   stock_map[sku.upper()] = [avail, in_arrivo]
-
-          # Caso 2: root è dict con chiave 'tabular' -> lista di oggetti
           elif isinstance(raw, dict) and 'tabular' in raw and isinstance(raw['tabular'], list):
               for item in raw['tabular']:
-                  if not isinstance(item, dict):
-                      continue
+                  if not isinstance(item, dict): continue
                   sku = item.get('sku') or item.get('SKU') or item.get('camac') or ''
-                  if not sku:
-                      continue
+                  if not sku: continue
                   avail = int(item.get('available', 0) or 0)
                   in_arrivo = int(item.get('supplier_1', 0) or 0) + int(item.get('supplier_2', 0) or 0)
                   stock_map[sku.upper()] = [avail, in_arrivo]
-
-          # Caso 3: root è direttamente una lista
           elif isinstance(raw, list):
               for item in raw:
-                  if not isinstance(item, dict):
-                      continue
+                  if not isinstance(item, dict): continue
                   sku = item.get('sku') or item.get('SKU') or item.get('camac') or ''
-                  if not sku:
-                      continue
+                  if not sku: continue
                   avail = int(item.get('available', 0) or 0)
                   in_arrivo = int(item.get('supplier_1', 0) or 0) + int(item.get('supplier_2', 0) or 0)
                   stock_map[sku.upper()] = [avail, in_arrivo]
-
-          # Caso 4: root è dict di SKU direttamente (senza 'tabular')
           elif isinstance(raw, dict):
               for sku, data in raw.items():
-                  if not isinstance(data, dict):
-                      continue
+                  if not isinstance(data, dict): continue
                   avail = int(data.get('available', 0) or 0)
                   in_arrivo = int(data.get('supplier_1', 0) or 0) + int(data.get('supplier_2', 0) or 0)
                   stock_map[sku.upper()] = [avail, in_arrivo]
