@@ -12,20 +12,13 @@ jobs:
 
       - name: Download stock from Action-Wear API
         run: |
-          # Step 1: chiedi l'URL del file ZIP e puliscilo
           ZIP_URL=$(curl -s \
             -H "Authorization: Bearer d2gckrl3fg107xe8y6xiqfi51h0qmn8y" \
             "https://api.action-wear.com/rest/it/V1/stockall" \
             | python3 -c "import sys,json; print(json.load(sys.stdin))")
           echo "ZIP URL: $ZIP_URL"
-
-          # Step 2: scarica lo ZIP
           curl -L -f -s "$ZIP_URL" -o export_stockall.zip
-          echo "ZIP scaricato, dimensione: $(wc -c < export_stockall.zip) bytes"
-
-          # Step 3: decomprimi
           unzip -o export_stockall.zip
-          echo "File estratti:"
           ls -la
 
       - name: Build stock_map.json
@@ -42,37 +35,32 @@ jobs:
               raw = json.load(f)
 
           print("Tipo root:", type(raw).__name__)
-          if isinstance(raw, dict):
-              print("Chiavi root:", list(raw.keys())[:10])
-              first_key = list(raw.keys())[0]
-              print("Esempio:", first_key, "->", str(raw[first_key])[:150])
+          first_key = list(raw.keys())[0] if isinstance(raw, dict) else None
+          if first_key:
+              print("Esempio:", first_key, "->", raw[first_key])
 
           stock_map = {}
 
-          def parse_item(sku, data):
-              avail = int(data.get('available', 0) or 0)
-              in_arrivo = int(data.get('supplier_1', 0) or 0) + int(data.get('supplier_2', 0) or 0)
-              stock_map[sku.upper()] = [avail, in_arrivo]
-
-          if isinstance(raw, dict) and 'tabular' in raw:
-              src = raw['tabular']
-              if isinstance(src, dict):
-                  for sku, data in src.items():
-                      if isinstance(data, dict): parse_item(sku, data)
-              elif isinstance(src, list):
-                  for item in src:
-                      sku = item.get('sku') or item.get('SKU') or item.get('camac') or ''
-                      if sku and isinstance(item, dict): parse_item(sku, item)
-          elif isinstance(raw, dict):
-              for sku, data in raw.items():
-                  if isinstance(data, dict): parse_item(sku, data)
+          # Formato attuale: {SKU: quantita_numerica}
+          if isinstance(raw, dict):
+              for sku, val in raw.items():
+                  if isinstance(val, (int, float)):
+                      avail = int(val)
+                      stock_map[sku.upper()] = [avail, 0]
+                  elif isinstance(val, dict):
+                      avail = int(val.get('available', 0) or 0)
+                      in_arrivo = int(val.get('supplier_1', 0) or 0) + int(val.get('supplier_2', 0) or 0)
+                      stock_map[sku.upper()] = [avail, in_arrivo]
           elif isinstance(raw, list):
               for item in raw:
                   sku = item.get('sku') or item.get('SKU') or item.get('camac') or ''
-                  if sku: parse_item(sku, item)
+                  if not sku: continue
+                  avail = int(item.get('available', 0) or 0)
+                  in_arrivo = int(item.get('supplier_1', 0) or 0) + int(item.get('supplier_2', 0) or 0)
+                  stock_map[sku.upper()] = [avail, in_arrivo]
 
           if not stock_map:
-              raise ValueError("stock_map vuoto — struttura non riconosciuta")
+              raise ValueError("stock_map vuoto")
 
           with open('stock_map.json', 'w') as f:
               json.dump(stock_map, f, separators=(',', ':'))
