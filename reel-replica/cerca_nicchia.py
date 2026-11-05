@@ -190,6 +190,23 @@ def cerca(termini, piattaforme=("Instagram", "TikTok"), per_termine=30, giorni=0
     if not risultati and errori:
         raise RuntimeError(" | ".join(errori))
 
+    return finalizza(risultati, tags, piattaforme, giorni, min_views, errori, avvio,
+                     costo=round(len(risultati) * COSTO_PER_VIDEO_USD, 2))
+
+
+def _mediana(valori):
+    v = sorted(valori)
+    return (v[len(v) // 2] + v[(len(v) - 1) // 2]) / 2 if v else 0
+
+
+def finalizza(risultati, termini, piattaforme, giorni, min_views, avvisi, avvio, costo=0.0):
+    """Filtra, calcola le metriche, ordina e salva l'ultima ricerca."""
+    # media views per profilo, per trovare i video "fuori scala"
+    per_autore = {}
+    for r in risultati:
+        if r.get("views") and r.get("autore"):
+            per_autore.setdefault((r["piattaforma"], r["autore"]), []).append(r["views"])
+
     limite = datetime.now(timezone.utc).timestamp() - giorni * 86400 if giorni else None
     visti, puliti = set(), []
     for r in risultati:
@@ -202,19 +219,22 @@ def cerca(termini, piattaforme=("Instagram", "TikTok"), per_termine=30, giorni=0
         visti.add(r["url"])
         v, l, c = r["views"], r["like"] or 0, r["commenti"] or 0
         r["engagement"] = round((l + c) / v * 100, 2) if v else None
-        r["moltiplicatore"] = round(v / r["follower"], 1) if v and r["follower"] else None
+        r["moltiplicatore"] = round(v / r["follower"], 1) if v and r.get("follower") else None
+        serie = per_autore.get((r["piattaforma"], r["autore"]), [])
+        med = _mediana(serie)
+        r["vs_media"] = round(v / med, 1) if v and med and len(serie) >= 4 else None
         r["data"] = r["data"].isoformat() if r["data"] else None
         puliti.append(r)
 
     puliti.sort(key=lambda r: r["views"] or 0, reverse=True)
     esito = {
-        "termini": tags,
+        "termini": termini,
         "piattaforme": list(piattaforme),
         "quando": datetime.now().isoformat(timespec="minutes"),
         "secondi": round(time.time() - avvio),
         "trovati": len(risultati),
-        "costo_stimato_usd": round(len(risultati) * COSTO_PER_VIDEO_USD, 2),
-        "avvisi": errori,
+        "costo_stimato_usd": costo,
+        "avvisi": avvisi,
         "risultati": puliti,
     }
     FILE_ULTIMA.write_text(json.dumps(esito, ensure_ascii=False), encoding="utf-8")

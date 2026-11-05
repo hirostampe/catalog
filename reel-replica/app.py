@@ -17,6 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+import cerca_gratis as gratis
 import cerca_nicchia as nicchia
 import scarica_reel as motore
 
@@ -34,6 +35,18 @@ def esegui_ricerca(opzioni):
     def passo(m):
         ricerca["messaggio"] = m
     try:
+        if opzioni.get("fonte") != "apify":
+            esito = gratis.cerca(
+                hashtag_ig=opzioni.get("termini", []),
+                profili_ig=opzioni.get("profili_ig", []),
+                profili_tt=opzioni.get("profili_tt", []),
+                per_fonte=max(5, min(int(opzioni.get("per_termine") or 30), 100)),
+                giorni=int(opzioni.get("giorni") or 0),
+                min_views=int(opzioni.get("min_views") or 0),
+                browser=opzioni.get("browser") or "chrome",
+                avanzamento=passo)
+            ricerca.update(stato="fatto", messaggio="", esito=esito)
+            return
         esito = nicchia.cerca(
             opzioni.get("termini", []),
             piattaforme=opzioni.get("piattaforme") or ["Instagram", "TikTok"],
@@ -181,7 +194,7 @@ class Gestore(BaseHTTPRequestHandler):
         if percorso == "/api/cerca":
             if ricerca["stato"] == "in_corso":
                 return self.rispondi(409, {"errore": "Una ricerca è già in corso"})
-            if not nicchia.token_apify():
+            if dati.get("fonte") == "apify" and not nicchia.token_apify():
                 return self.rispondi(400, {"errore": "Inserisci prima il token Apify (⚙︎ Impostazioni)"})
             ricerca.update(stato="in_corso", messaggio="Avvio ricerca…")
             threading.Thread(target=esegui_ricerca, args=(dati,), daemon=True).start()

@@ -35,22 +35,31 @@ Per chiudere l'app chiudi la finestra del terminale.
 
 ## Top per nicchia: trovare i video con più views
 
-Nella scheda **🔥 Top per nicchia** scegli una nicchia (CrossFit, Palestra, Danza,
-Padel, Bar e locali…) oppure scrivi i tuoi hashtag, scegli Instagram e/o TikTok, il
-periodo e le views minime, poi premi **Cerca i top**. In 1-3 minuti ottieni una
-classifica dei video ordinabile per:
-- **più visualizzazioni**;
-- **più coinvolgimento** ((like + commenti) / views);
-- **più views rispetto ai follower** (solo TikTok). Questo è il segnale migliore di
-  un *formato* che funziona: un profilo piccolo che fa numeri grossi.
+Scheda **🔥 Top per nicchia**. Ci sono due fonti:
 
-Spunta i video che ti interessano e premi **Analizza selezionati**: finiscono in
-Libreria con il pacchetto pronto per Claude.
+### Gratis · il tuo login (predefinita)
+- **Hashtag Instagram**: scegli una nicchia pronta o scrivi i tuoi hashtag. Serve
+  essere collegati a instagram.com nel browser scelto (Chrome, Safari…).
+- **Profili TikTok e Instagram**: inserisci gli account della nicchia (box,
+  palestre, concorrenti). L'app legge i loro ultimi video e segnala quelli
+  **🚀 fuori scala**, cioè con molte più views della media di quel profilo:
+  il segnale migliore di un formato che funziona.
+- Gli hashtag TikTok gratis non sono possibili: per quelli usa la fonte Apify.
+- L'app fa poche richieste con delle pause. Usala per decine di video, non
+  migliaia, per non far insospettire Instagram.
+- Su Mac la prima volta può chiedere la password del portachiavi per leggere il
+  login di Chrome: clicca **Consenti sempre**. Con Safari serve dare al Terminale
+  "Accesso completo al disco" (Impostazioni → Privacy e sicurezza).
 
-La ricerca usa **Apify** (servizio a pagamento a consumo, circa 0,3 centesimi di
-dollaro per video trovato). La prima volta: ⚙︎ Impostazioni → incolla il tuo token
-Apify (apify.com → Settings → API & Integrations). Il token resta salvato solo sul
-tuo computer, in `impostazioni.json`.
+### Apify · a pagamento (opzionale)
+Cerca per hashtag sia su Instagram sia su TikTok, senza usare il tuo account.
+Circa 0,3 centesimi di dollaro per video. Token da inserire in ⚙︎ Impostazioni
+(apify.com → Settings → API & Integrations); resta salvato solo sul tuo computer.
+
+### Classifica
+Ordinabile per **più visualizzazioni**, **più coinvolgimento**, **fuori scala**
+(vs media del profilo) e **views rispetto ai follower**. Spunta i video e premi
+**Analizza selezionati**: finiscono in Libreria con il pacchetto per Claude.
 
 ## Uso da riga di comando (alternativa)
 
