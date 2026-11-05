@@ -1,13 +1,22 @@
 #!/bin/bash
 # Doppio clic per aprire Reel Replica (Mac)
 cd "$(dirname "$0")"
-if ! command -v ffmpeg >/dev/null; then
-  if command -v brew >/dev/null; then echo "Installo ffmpeg…"; brew install ffmpeg
-  else echo "Manca ffmpeg. Installa Homebrew (https://brew.sh) e poi: brew install ffmpeg"; read -r; exit 1; fi
+
+# Rende visibile Homebrew (Mac con chip Apple o Intel)
+for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do [ -x "$b" ] && eval "$("$b" shellenv)"; done
+if ! command -v brew >/dev/null; then
+  echo "Manca Homebrew. Installalo con il comando indicato nel README, poi riapri questo file."
+  read -r; exit 1
 fi
-if [ ! -d .venv ]; then
+
+# Python recente + ffmpeg (solo la prima volta)
+command -v ffmpeg >/dev/null || { echo "Installo ffmpeg…"; brew install ffmpeg; }
+[ -x "$(brew --prefix)/bin/python3.12" ] || { echo "Installo Python…"; brew install python@3.12; }
+PY="$(brew --prefix)/bin/python3.12"
+
+if [ ! -x .venv/bin/python ] || ! .venv/bin/python -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
   echo "Prima installazione…"
-  python3 -m venv .venv || { echo "Manca Python 3: scaricalo da https://www.python.org"; read -r; exit 1; }
+  rm -rf .venv && "$PY" -m venv .venv
 fi
 .venv/bin/pip install -q --upgrade -r requirements.txt
 .venv/bin/python app.py
