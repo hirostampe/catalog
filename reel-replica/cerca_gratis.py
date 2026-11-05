@@ -1,9 +1,9 @@
 """
-Ricerca dei video top SENZA servizi a pagamento.
+Ricerca dei video top del settore, senza servizi a pagamento.
 
 - Instagram (hashtag e profili): usa il login di Instagram del tuo browser.
 - TikTok (profili): legge i video pubblici del profilo con yt-dlp.
-- TikTok per hashtag non è possibile gratis: per quello serve Apify.
+- TikTok: si cercano i profili (gli hashtag TikTok non sono leggibili gratis).
 
 Fa poche richieste, con una pausa tra l'una e l'altra, per non insospettire
 Instagram. Non usarlo per migliaia di video al giorno.
@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import yt_dlp
 from yt_dlp.networking import Request
 
-from cerca_nicchia import _data, _hashtag, _num, finalizza
+from classifica import _data, _hashtag, _num, finalizza
 
 IG_APP_ID = "936619743392459"   # id pubblico usato dal sito web di Instagram
 PAUSA = 1.5                      # secondi tra una richiesta e l'altra
@@ -35,7 +35,13 @@ class Instagram:
         opz = {"quiet": True, "no_warnings": True}
         if browser:
             opz["cookiesfrombrowser"] = (browser,)
-        self.ydl = yt_dlp.YoutubeDL(opz)
+        try:
+            self.ydl = yt_dlp.YoutubeDL(opz)
+        except Exception as e:
+            if "cookies database" in str(e) or "could not find" in str(e).lower():
+                raise RuntimeError(f"Non trovo {browser} su questo computer: scegli il browser che usi "
+                                   "per Instagram in 'Login dal browser'.")
+            raise
         cookie = {c.name: c.value for c in self.ydl.cookiejar if "instagram.com" in c.domain}
         self.loggato = "sessionid" in cookie
         self.csrf = cookie.get("csrftoken", "")

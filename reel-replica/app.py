@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 import cerca_gratis as gratis
-import cerca_nicchia as nicchia
+import classifica
 import scarica_reel as motore
 
 PORTA = 8765
@@ -28,31 +28,21 @@ PAGINA = QUI / "interfaccia.html"
 lavori = {}          # id -> stato del lavoro
 lucchetto = threading.Lock()
 coda = threading.Semaphore(2)  # massimo 2 download insieme
-ricerca = {"stato": "ferma", "messaggio": "", "esito": nicchia.ultima_ricerca()}
+ricerca = {"stato": "ferma", "messaggio": "", "esito": classifica.ultima_ricerca()}
 
 
 def esegui_ricerca(opzioni):
     def passo(m):
         ricerca["messaggio"] = m
     try:
-        if opzioni.get("fonte") != "apify":
-            esito = gratis.cerca(
-                hashtag_ig=opzioni.get("termini", []),
-                profili_ig=opzioni.get("profili_ig", []),
-                profili_tt=opzioni.get("profili_tt", []),
-                per_fonte=max(5, min(int(opzioni.get("per_termine") or 30), 100)),
-                giorni=int(opzioni.get("giorni") or 0),
-                min_views=int(opzioni.get("min_views") or 0),
-                browser=opzioni.get("browser") or "chrome",
-                avanzamento=passo)
-            ricerca.update(stato="fatto", messaggio="", esito=esito)
-            return
-        esito = nicchia.cerca(
-            opzioni.get("termini", []),
-            piattaforme=opzioni.get("piattaforme") or ["Instagram", "TikTok"],
-            per_termine=max(5, min(int(opzioni.get("per_termine") or 30), 200)),
+        esito = gratis.cerca(
+            hashtag_ig=opzioni.get("termini", []),
+            profili_ig=opzioni.get("profili_ig", []),
+            profili_tt=opzioni.get("profili_tt", []),
+            per_fonte=max(5, min(int(opzioni.get("per_termine") or 30), 100)),
             giorni=int(opzioni.get("giorni") or 0),
             min_views=int(opzioni.get("min_views") or 0),
+            browser=opzioni.get("browser") or "chrome",
             avanzamento=passo)
         ricerca.update(stato="fatto", messaggio="", esito=esito)
     except Exception as e:
@@ -154,10 +144,8 @@ class Gestore(BaseHTTPRequestHandler):
             return self.rispondi(200, libreria())
         if percorso == "/api/ricerca":
             return self.rispondi(200, ricerca)
-        if percorso == "/api/impostazioni":
-            return self.rispondi(200, {"token_impostato": bool(nicchia.token_apify()),
-                                       "nicchie": nicchia.NICCHIE,
-                                       "costo_per_video": nicchia.COSTO_PER_VIDEO_USD})
+        if percorso == "/api/categorie":
+            return self.rispondi(200, classifica.CATEGORIE)
         if percorso.startswith("/file/"):
             try:
                 file = cartella_sicura(percorso[len("/file/"):])
@@ -194,17 +182,8 @@ class Gestore(BaseHTTPRequestHandler):
         if percorso == "/api/cerca":
             if ricerca["stato"] == "in_corso":
                 return self.rispondi(409, {"errore": "Una ricerca è già in corso"})
-            if dati.get("fonte") == "apify" and not nicchia.token_apify():
-                return self.rispondi(400, {"errore": "Inserisci prima il token Apify (⚙︎ Impostazioni)"})
             ricerca.update(stato="in_corso", messaggio="Avvio ricerca…")
             threading.Thread(target=esegui_ricerca, args=(dati,), daemon=True).start()
-            return self.rispondi(200, {"ok": True})
-
-        if percorso == "/api/impostazioni":
-            token = (dati.get("apify_token") or "").strip()
-            if not token:
-                return self.rispondi(400, {"errore": "Token vuoto"})
-            nicchia.salva_token(token)
             return self.rispondi(200, {"ok": True})
 
         if percorso == "/api/apri":

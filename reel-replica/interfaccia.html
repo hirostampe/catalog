@@ -131,38 +131,27 @@
       <h1>Reel Replica</h1>
       <p>Prendi un reel che funziona, rifallo con le tue clip.</p>
     </div>
-    <button class="gear" id="apriImp" type="button">⚙︎ Impostazioni</button>
   </header>
 
   <div class="tabs">
     <button class="tab on" data-tab="tabLink" type="button">🔗 Analizza link</button>
-    <button class="tab" data-tab="tabNicchia" type="button">🔥 Top per nicchia</button>
+    <button class="tab" data-tab="tabNicchia" type="button">🔥 Top del settore</button>
   </div>
 
   <div id="tabNicchia" hidden>
     <section class="card">
-      <div class="row" style="margin:0 0 14px">
-        <span class="hint">Fonte</span>
-        <div class="tabs" style="margin:0">
-          <button type="button" class="tab fonte on" data-fonte="gratis">Gratis · il tuo login</button>
-          <button type="button" class="tab fonte" data-fonte="apify">Apify · a pagamento</button>
-        </div>
-      </div>
-      <div id="noToken" class="banner" hidden>Per la fonte Apify serve un token. <button type="button" onclick="apriImp()">Inseriscilo</button></div>
-      <div class="hint soloGratis" style="margin-bottom:10px">Gratis: hashtag solo su <b>Instagram</b> (serve essere collegati a Instagram nel browser scelto). Per TikTok inserisci i <b>profili</b> della nicchia: l'app trova i loro video andati meglio del solito.</div>
-      <div class="hint" style="margin-bottom:8px">Scegli una nicchia o scrivi i tuoi hashtag</div>
+      <div class="hint" style="margin-bottom:10px">Trova i video del tuo settore (stampa, serigrafia, ricamo, merch…) con più views. Hashtag su <b>Instagram</b> (serve essere collegati a Instagram nel browser scelto); per <b>TikTok</b> inserisci i profili da cui prendere spunto: l'app trova i loro video andati meglio del solito.</div>
+      <div class="hint" style="margin-bottom:8px">Scegli una categoria o scrivi i tuoi hashtag Instagram</div>
       <div class="chips" id="nicchie"></div>
-      <input type="text" id="termini" style="width:100%" placeholder="Hashtag separati da virgola, es: crossfit, crossfititalia, wod">
-      <div class="soloGratis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px">
+      <input type="text" id="termini" style="width:100%" placeholder="Hashtag separati da virgola, es: serigrafia, screenprinting, dtf">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px">
         <label class="field">Profili TikTok da analizzare
-          <input type="text" id="profiliTT" placeholder="@box1, @palestra2, link del profilo…"></label>
+          <input type="text" id="profiliTT" placeholder="@stamperia1, @brand2, link del profilo…"></label>
         <label class="field">Profili Instagram da analizzare
-          <input type="text" id="profiliIG" placeholder="@box1, @palestra2, link del profilo…"></label>
+          <input type="text" id="profiliIG" placeholder="@stamperia1, @brand2, link del profilo…"></label>
       </div>
       <div class="row">
-        <label class="toggle soloApify" hidden><input type="checkbox" id="pIG" checked> Instagram</label>
-        <label class="toggle soloApify" hidden><input type="checkbox" id="pTT" checked> TikTok</label>
-        <label class="field soloGratis">Login dal browser
+        <label class="field">Login dal browser
           <select id="browserN"><option>chrome</option><option>safari</option><option>firefox</option><option>edge</option><option>brave</option></select></label>
         <label class="field">Video per ricerca
           <select id="perTermine"><option>20</option><option selected>30</option><option>50</option><option>100</option></select></label>
@@ -237,24 +226,6 @@
     <h3>Prompt per Claude</h3>
     <pre id="dPrompt"></pre>
     <div class="actions" id="dAzioni"></div>
-  </div>
-</dialog>
-
-<dialog id="imp">
-  <div class="dhead"><strong>Impostazioni</strong><button type="button" onclick="imp.close()">✕</button></div>
-  <div class="dbody">
-    <p style="margin-top:0">Il token serve solo per la fonte <b>Apify</b> (opzionale: la fonte <b>Gratis</b> non ne ha bisogno). Apify è un servizio a pagamento che legge i dati pubblici di Instagram e TikTok, anche gli hashtag TikTok.</p>
-    <ol class="hint" style="font-size:14px;line-height:1.7">
-      <li>Crea un account gratuito su <a href="https://console.apify.com/sign-up" target="_blank" style="color:var(--accent)">apify.com</a> (o accedi).</li>
-      <li>Vai su <a href="https://console.apify.com/settings/integrations" target="_blank" style="color:var(--accent)">Settings → API &amp; Integrations</a> e copia il <b>Personal API token</b>.</li>
-      <li>Incollalo qui sotto e salva.</li>
-    </ol>
-    <div class="row">
-      <input type="password" id="token" placeholder="apify_api_…" style="flex:1;min-width:220px">
-      <button class="primary" id="salvaToken" type="button">Salva</button>
-    </div>
-    <p class="hint" id="statoToken"></p>
-    <p class="hint">Costo indicativo: circa 0,3 centesimi di dollaro per video trovato (100 video ≈ 0,30 $). Il piano gratuito ha un piccolo credito mensile; per Instagram dà solo la prima pagina di risultati.</p>
   </div>
 </dialog>
 
@@ -377,64 +348,35 @@ document.querySelectorAll(".tab[data-tab]").forEach(t => t.onclick = () => {
 });
 try { const t = localStorage.getItem("tab"); if (t) document.querySelector(`.tab[data-tab="${t}"]`)?.click(); } catch {}
 
-/* ---------- impostazioni ---------- */
-let imp_ = {};
-async function caricaImp() {
-  imp_ = await api("/api/impostazioni");
-
-  $("#statoToken").innerHTML = imp_.token_impostato ? '<span class="tag-ok">✓ Token salvato</span>' : "Nessun token salvato";
-  $("#nicchie").innerHTML = Object.keys(imp_.nicchie).map(n => `<button type="button" class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join("");
+/* ---------- categorie e ricerca ---------- */
+let categorie = {};
+async function caricaCategorie() {
+  categorie = await api("/api/categorie");
+  $("#nicchie").innerHTML = Object.keys(categorie).map(n => `<button type="button" class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join("");
   document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
     document.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === c));
-    $("#termini").value = imp_.nicchie[c.dataset.n].join(", "); stimaCosto();
+    $("#termini").value = categorie[c.dataset.n].join(", "); stimaTempo();
   });
-  impostaFonte(fonte);
+  stimaTempo();
 }
-function apriImp() { $("#imp").showModal(); }
-$("#apriImp").onclick = apriImp;
-$("#salvaToken").onclick = async () => {
-  try { await api("/api/impostazioni", { apify_token: $("#token").value }); $("#token").value = ""; toast("Token salvato ✓"); $("#imp").close(); caricaImp(); }
-  catch (e) { toast(e.message); }
-};
 
-/* ---------- ricerca ---------- */
 const termini = () => $("#termini").value.split(/[,\n]+/).map(t => t.trim()).filter(Boolean);
-const piattaforme = () => [$("#pIG").checked && "Instagram", $("#pTT").checked && "TikTok"].filter(Boolean);
 const lista = sel => $(sel).value.split(/[,\s]+/).map(t => t.trim()).filter(Boolean);
-let fonte = "gratis";
-try { fonte = localStorage.getItem("fonte") || "gratis"; } catch {}
-function impostaFonte(f) {
-  fonte = f;
-  document.querySelectorAll(".fonte").forEach(b => b.classList.toggle("on", b.dataset.fonte === f));
-  document.querySelectorAll(".soloGratis").forEach(e => e.hidden = f !== "gratis");
-  document.querySelectorAll(".soloApify").forEach(e => e.hidden = f !== "apify");
-  $("#noToken").hidden = f !== "apify" || imp_.token_impostato;
-  try { localStorage.setItem("fonte", f); } catch {}
-  stimaCosto();
+function stimaTempo() {
+  const n = termini().length + lista("#profiliTT").length + lista("#profiliIG").length;
+  $("#costo").textContent = n ? `${n} ricerche · circa ${Math.max(1, Math.round(n * 0.2))} min` : "";
 }
-document.querySelectorAll(".fonte").forEach(b => b.onclick = () => impostaFonte(b.dataset.fonte));
-function stimaCosto() {
-  if (fonte === "gratis") {
-    const n = termini().length + lista("#profiliTT").length + lista("#profiliIG").length;
-    $("#costo").textContent = n ? `Gratis · ${n} ricerche · circa ${Math.max(1, Math.round(n * 0.2))} min` : "Gratis";
-    return;
-  }
-  const n = termini().length * piattaforme().length * +$("#perTermine").value;
-  $("#costo").textContent = n ? `≈ ${n} video · circa ${(n * (imp_.costo_per_video || .003)).toFixed(2)} $` : "";
-}
-["#termini", "#pIG", "#pTT", "#perTermine", "#profiliTT", "#profiliIG"].forEach(s => $(s).addEventListener("input", stimaCosto));
+["#termini", "#profiliTT", "#profiliIG"].forEach(s => $(s).addEventListener("input", stimaTempo));
 
 $("#cerca").onclick = async () => {
-  const gr = fonte === "gratis";
-  if (!termini().length && !(gr && (lista("#profiliTT").length || lista("#profiliIG").length)))
-    return toast(gr ? "Scrivi un hashtag o almeno un profilo" : "Scegli una nicchia o scrivi un hashtag");
-  if (!gr && !piattaforme().length) return toast("Scegli almeno una piattaforma");
+  if (!termini().length && !lista("#profiliTT").length && !lista("#profiliIG").length)
+    return toast("Scegli una categoria, scrivi un hashtag o inserisci un profilo");
   try {
-    await api("/api/cerca", { fonte, termini: termini(), piattaforme: piattaforme(), per_termine: +$("#perTermine").value,
+    await api("/api/cerca", { termini: termini(), per_termine: +$("#perTermine").value,
       giorni: +$("#giorni").value, min_views: +$("#minViews").value,
       profili_tt: lista("#profiliTT"), profili_ig: lista("#profiliIG"), browser: $("#browserN").value });
     aggiornaRicerca();
-  } catch (e) { toast(e.message); if (/token/i.test(e.message)) apriImp(); }
+  } catch (e) { toast(e.message); }
 };
 
 let ricercaFirma = "", selezionati = new Set();
@@ -499,7 +441,7 @@ async function analizza(urls) {
   } catch (e) { toast(e.message); }
 }
 
-caricaImp();
+caricaCategorie();
 aggiornaRicerca();
 setInterval(() => { if ($("#cerca").disabled || !ricercaFirma) aggiornaRicerca(); }, 2000);
 </script>
