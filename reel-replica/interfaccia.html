@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Replica</title>
+<style>
+  :root {
+    --bg: #0e0e10; --card: #18181c; --card2: #222228; --line: #2e2e36;
+    --txt: #f4f4f5; --muted: #9a9aa5; --accent: #ffd400; --accent-txt: #111;
+    --ok: #3ddc84; --err: #ff5c5c; --r: 16px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--txt);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .logo { width: 42px; height: 42px; border-radius: 12px; background: var(--accent); color: var(--accent-txt);
+    display: grid; place-items: center; font-weight: 900; font-size: 20px; }
+  header h1 { font-size: 22px; margin: 0; letter-spacing: -.3px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; }
+  .steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .step { font-size: 12px; color: var(--muted); background: var(--card2); padding: 5px 10px; border-radius: 99px; }
+  .step b { color: var(--accent); }
+  textarea { width: 100%; min-height: 96px; resize: vertical; background: var(--bg); color: var(--txt);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px; font: inherit; outline: none; }
+  textarea:focus { border-color: var(--accent); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .spacer { flex: 1; }
+  button, .btn { appearance: none; border: 1px solid var(--line); background: var(--card2); color: var(--txt);
+    padding: 10px 14px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  button:hover, .btn:hover { border-color: var(--muted); }
+  .primary { background: var(--accent); color: var(--accent-txt); border-color: var(--accent); padding: 12px 22px; font-size: 16px; }
+  .primary:hover { filter: brightness(1.08); border-color: var(--accent); }
+  .primary:disabled { opacity: .5; cursor: default; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; cursor: pointer; user-select: none; }
+  .toggle input { accent-color: var(--accent); width: 17px; height: 17px; }
+  select { background: var(--bg); color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; }
+
+  h2 { font-size: 17px; margin: 32px 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2 small { color: var(--muted); font-weight: 400; font-size: 13px; }
+
+  .job { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  .job .url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted); }
+  .job .msg { font-size: 13px; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .in_corso .dot, .in_coda .dot { background: var(--accent); animation: pulse 1s infinite alternate; }
+  .fatto .dot { background: var(--ok); } .errore .dot { background: var(--err); }
+  .errore .msg { color: var(--err); }
+  @keyframes pulse { to { opacity: .25; } }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .reel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; }
+  .strip { display: flex; gap: 2px; height: 150px; background: #000; overflow: hidden; cursor: pointer; }
+  .strip img { height: 100%; flex: 1; min-width: 0; object-fit: cover; }
+  .timeline { display: flex; height: 6px; gap: 2px; }
+  .timeline span { background: var(--accent); }
+  .timeline span:nth-child(even) { background: #b39500; }
+  .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .who { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
+  .who .pf { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--card2); color: var(--muted); text-transform: uppercase; }
+  .stats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stat { background: var(--card2); border-radius: 8px; padding: 6px 9px; font-size: 12px; color: var(--muted); }
+  .stat b { color: var(--txt); font-size: 14px; display: block; }
+  .caption { font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+  .actions .primary { padding: 10px 14px; font-size: 14px; }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; border: 1px dashed var(--line); border-radius: var(--r); }
+
+  dialog { background: var(--card); color: var(--txt); border: 1px solid var(--line); border-radius: var(--r);
+    padding: 0; width: min(900px, 94vw); max-height: 90vh; }
+  dialog::backdrop { background: rgba(0,0,0,.7); }
+  .dhead { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card); }
+  .dbody { padding: 20px; overflow: auto; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .shot img { width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 10px; display: block; background: #000; }
+  .shot div { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .shot b { color: var(--accent); }
+  pre { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 13px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(100px); background: var(--accent);
+    color: var(--accent-txt); padding: 12px 20px; border-radius: 12px; font-weight: 700; transition: .25s; z-index: 10;
+    opacity: 0; pointer-events: none; }
+  .toast.on { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">R</div>
+    <div>
+      <h1>Reel Replica</h1>
+      <p>Prendi un reel che funziona, rifallo con le tue clip.</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="steps">
+      <span class="step"><b>1</b> Incolla i link</span>
+      <span class="step"><b>2</b> Analizza</span>
+      <span class="step"><b>3</b> Copia il prompt e scarica il pacchetto</span>
+      <span class="step"><b>4</b> Caricali su Claude con le tue clip</span>
+    </div>
+    <textarea id="links" placeholder="Incolla qui uno o più link Instagram o TikTok (uno per riga)&#10;https://www.instagram.com/reel/…&#10;https://www.tiktok.com/@…/video/…"></textarea>
+    <div class="row">
+      <button id="incolla" type="button">📋 Incolla</button>
+      <label class="toggle"><input type="checkbox" id="usaLogin"> Usa il login del browser
+        <select id="browser"><option>chrome</option><option>safari</option><option>firefox</option><option>edge</option><option>brave</option></select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="conVideo"> Includi il video nello zip</label>
+      <span class="spacer"></span>
+      <button class="primary" id="vai">Analizza ▶</button>
+    </div>
+  </section>
+
+  <div id="lavoriBox" hidden>
+    <h2>In lavorazione <button id="pulisci" type="button" style="margin-left:auto;font-size:12px;padding:6px 10px">Pulisci</button></h2>
+    <div id="lavori"></div>
+  </div>
+
+  <h2>Libreria <small id="conta"></small></h2>
+  <div id="libreria" class="grid"></div>
+</div>
+
+<dialog id="dettaglio">
+  <div class="dhead"><strong id="dTitolo"></strong><button onclick="dettaglio.close()">✕</button></div>
+  <div class="dbody">
+    <div class="shots" id="dShots"></div>
+    <h3>Prompt per Claude</h3>
+    <pre id="dPrompt"></pre>
+    <div class="actions" id="dAzioni"></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : n;
+const fileUrl = (c, f) => `/file/${encodeURIComponent(c)}/${encodeURIComponent(f)}`;
+let elenco = [], firmaLib = "";
+
+function toast(t) {
+  const el = $("#toast"); el.textContent = t; el.classList.add("on");
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("on"), 2200);
+}
+
+async function copia(testo) {
+  try { await navigator.clipboard.writeText(testo); }
+  catch { const t = document.createElement("textarea"); t.value = testo; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  toast("Prompt copiato ✓");
+}
+
+async function api(url, corpo) {
+  const r = await fetch(url, corpo ? { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(corpo) } : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.errore || "Errore");
+  return j;
+}
+
+$("#incolla").onclick = async () => {
+  try { const t = await navigator.clipboard.readText(); $("#links").value = ($("#links").value.trim() + "\n" + t).trim(); }
+  catch { $("#links").focus(); toast("Usa Cmd/Ctrl + V"); }
+};
+
+$("#vai").onclick = async () => {
+  const urls = $("#links").value.split(/\s+/).filter(u => /^https?:\/\//.test(u));
+  if (!urls.length) return toast("Incolla almeno un link");
+  $("#vai").disabled = true;
+  try {
+    await api("/api/scarica", { urls, cookies_browser: $("#usaLogin").checked ? $("#browser").value : "", con_video: $("#conVideo").checked });
+    $("#links").value = ""; toast(urls.length > 1 ? `${urls.length} video in lavorazione` : "Video in lavorazione");
+    aggiornaStato();
+  } catch (e) { toast(e.message); }
+  $("#vai").disabled = false;
+};
+
+$("#pulisci").onclick = async () => { await api("/api/pulisci", {}); aggiornaStato(); };
+
+async function aggiornaStato() {
+  const lav = await api("/api/stato");
+  $("#lavoriBox").hidden = !lav.length;
+  $("#lavori").innerHTML = lav.map(l => `
+    <div class="job ${l.stato}" title="${esc(l.dettaglio || "")}">
+      <span class="dot"></span><span class="url">${esc(l.url)}</span>
+      <span class="msg">${l.stato === "fatto" ? "✓ Pronto" : esc(l.messaggio)}</span>
+    </div>`).join("");
+  aggiornaLibreria();
+}
+
+function timeline(r) {
+  const tot = r.durata_s || 1;
+  return `<div class="timeline">${r.inquadrature.map(s => `<span style="flex:${s.durata / tot}"></span>`).join("")}</div>`;
+}
+
+function azioni(r, i) {
+  return `<button class="primary" onclick="copia(elenco[${i}].prompt)">📋 Copia prompt</button>
+    <a class="btn" href="${fileUrl(r.cartella, "pacchetto.zip")}" download>⬇ Pacchetto</a>
+    <button onclick="api('/api/apri',{cartella:elenco[${i}].cartella})">📁 Cartella</button>`;
+}
+
+async function aggiornaLibreria() {
+  const lib = await api("/api/libreria");
+  const firma = lib.map(r => r.cartella + r.data).join("|");
+  if (firma === firmaLib) return;
+  firmaLib = firma; elenco = lib;
+  $("#conta").textContent = lib.length ? `${lib.length} reel` : "";
+  $("#libreria").innerHTML = lib.length ? lib.map((r, i) => {
+    const media = r.inquadrature.length ? (r.durata_s / r.inquadrature.length).toFixed(1) : "-";
+    const n = r.numeri || {};
+    return `<article class="reel">
+      <div class="strip" onclick="apriDettaglio(${i})" title="Vedi tutte le inquadrature">
+        ${r.frames.slice(0, 6).map(f => `<img loading="lazy" src="${fileUrl(r.cartella, f)}">`).join("")}
+      </div>
+      ${timeline(r)}
+      <div class="body">
+        <div class="who"><span>${esc(r.autore || "—")}</span><span class="pf">${esc(r.piattaforma || "")}</span></div>
+        <div class="stats">
+          <div class="stat"><b>${r.durata_s.toFixed(1)}s</b>durata</div>
+          <div class="stat"><b>${r.inquadrature.length}</b>tagli</div>
+          <div class="stat"><b>${media}s</b>a inquadr.</div>
+          ${n.view_count != null ? `<div class="stat"><b>${num(n.view_count)}</b>views</div>` : ""}
+          ${n.like_count != null ? `<div class="stat"><b>${num(n.like_count)}</b>like</div>` : ""}
+        </div>
+        ${r.didascalia ? `<div class="caption">${esc(r.didascalia)}</div>` : ""}
+        <div class="actions">${azioni(r, i)}</div>
+      </div>
+    </article>`;
+  }).join("") : `<div class="empty" style="grid-column:1/-1">Ancora niente qui.<br>Incolla il link di un reel che ti piace e premi <b>Analizza</b>.</div>`;
+}
+
+function apriDettaglio(i) {
+  const r = elenco[i];
+  $("#dTitolo").textContent = `${r.autore || ""} · ${r.durata_s.toFixed(1)}s · ${r.inquadrature.length} inquadrature`;
+  $("#dShots").innerHTML = r.inquadrature.map((s, k) => `
+    <div class="shot"><img loading="lazy" src="${fileUrl(r.cartella, r.frames[k] || "")}">
+    <div><b>#${s.n}</b> ${s.inizio.toFixed(1)}–${s.fine.toFixed(1)}s · ${s.durata.toFixed(1)}s</div></div>`).join("");
+  $("#dPrompt").textContent = r.prompt;
+  $("#dAzioni").innerHTML = azioni(r, i);
+  $("#dettaglio").showModal();
+}
+
+aggiornaStato();
+setInterval(aggiornaStato, 1500);
+</script>
+</body>
+</html>

@@ -14,7 +14,26 @@ dei tagli, testi, CTA) con le tue clip.
    pip install -r requirements.txt
    ```
 
-## Uso
+## Come si apre l'app
+
+- **Mac:** doppio clic su `Avvia Mac.command` (la prima volta: tasto destro → Apri).
+- **Windows:** doppio clic su `Avvia Windows.bat`.
+
+Al primo avvio installa da solo quello che serve, poi apre il browser su
+`http://localhost:8765`. Da lì:
+
+1. incolli uno o più link e premi **Analizza**;
+2. segui l'avanzamento in "In lavorazione";
+3. nella **Libreria** trovi una scheda per ogni reel con fotogrammi, durata, tagli,
+   views e like. Hai tre pulsanti: **Copia prompt**, **Pacchetto** (scarica lo zip) e
+   **Cartella**. Se clicchi sui fotogrammi vedi tutte le inquadrature con i tempi.
+
+Se Instagram chiede il login, spunta **Usa il login del browser** e scegli il
+browser in cui sei collegato a Instagram.
+
+Per chiudere l'app chiudi la finestra del terminale.
+
+## Uso da riga di comando (alternativa)
 
 ```
 python scarica_reel.py https://www.instagram.com/reel/XXXX/

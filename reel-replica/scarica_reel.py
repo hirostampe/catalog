@@ -54,8 +54,15 @@ def nome_cartella(info):
     return pulito[:80]
 
 
-def scarica(url, cookies_browser=None, cookies_file=None):
+def scarica(url, cookies_browser=None, cookies_file=None, avanzamento=None):
+    def hook(d):
+        if avanzamento and d.get("status") == "downloading":
+            tot = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
+            if tot:
+                avanzamento(f"Download {d.get('downloaded_bytes', 0) * 100 // tot}%")
+
     opzioni = {
+        "progress_hooks": [hook],
         "format": "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b",
         "merge_output_format": "mp4",
         "quiet": True,
@@ -212,18 +219,32 @@ def crea_zip(cartella, includi_video):
     return out
 
 
-def elabora(url, args):
-    print(f"\n▶ {url}")
-    info, cartella, video = scarica(url, args.cookies_from_browser, args.cookies)
+def elabora(url, cookies_browser=None, cookies=None, con_video=False, avanzamento=None):
+    """Scarica e analizza un video. Restituisce la cartella del pacchetto."""
+    passo = avanzamento or (lambda m: None)
+    passo("Download in corso…")
+    info, cartella, video = scarica(url, cookies_browser, cookies, avanzamento)
+    passo("Cerco i tagli…")
     durata = durata_video(video)
     scene = trova_tagli(video, durata)
+    passo("Estraggo i fotogrammi…")
     frames = estrai_frame(video, scene, cartella)
     crea_provino(frames, scene, cartella)
+    passo("Preparo il pacchetto…")
     scrivi_brief(info, scene, durata, cartella, ha_audio(video))
-    zip_ = crea_zip(cartella, args.con_video)
-    print(f"  ✓ {durata:.1f}s, {len(scene)} inquadrature")
-    print(f"  ✓ cartella: {cartella}")
-    print(f"  ✓ da caricare su Claude: {zip_}")
+    crea_zip(cartella, con_video)
+    return cartella
+
+
+def suggerimento_errore(url, msg):
+    m = msg.lower()
+    if "instagram" in url and ("login" in m or "cookie" in m or "rate" in m):
+        return "Instagram chiede il login: attiva 'Usa il login del browser'."
+    if "private" in m or "privat" in m:
+        return "Il video è privato o non accessibile."
+    if "unsupported url" in m:
+        return "Link non riconosciuto: copia il link del singolo reel/video."
+    return "Prova ad aggiornare yt-dlp (pip install -U yt-dlp) o riprova più tardi."
 
 
 def main():
@@ -248,14 +269,14 @@ def main():
     CARTELLA_BASE.mkdir(exist_ok=True)
     errori = 0
     for u in urls:
+        print(f"\n▶ {u}")
         try:
-            elabora(u, args)
+            cartella = elabora(u, args.cookies_from_browser, args.cookies, args.con_video)
+            print(f"  ✓ da caricare su Claude: {cartella / 'pacchetto.zip'}")
         except Exception as e:  # continua con gli altri link
             errori += 1
-            msg = str(e)
-            print(f"  ✗ errore: {msg[:300]}")
-            if "instagram" in u and ("login" in msg.lower() or "cookies" in msg.lower()):
-                print("    → riprova aggiungendo:  --cookies-from-browser chrome")
+            print(f"  ✗ errore: {str(e)[:300]}")
+            print(f"    → {suggerimento_errore(u, str(e))}")
     shutil.rmtree(CARTELLA_BASE / "_tmp", ignore_errors=True)
     print(f"\nFatto: {len(urls) - errori}/{len(urls)} video pronti in {CARTELLA_BASE}")
 
