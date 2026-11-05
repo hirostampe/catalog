@@ -1,0 +1,16 @@
+{
+  "name": "hirostampe-lead-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lead da Google Maps + sito web + Instagram (alternativa ad Apify)",
+  "main": "scrape.js",
+  "bin": { "lead-scraper": "scrape.js" },
+  "scripts": {
+    "setup": "npm install && npx playwright install chromium",
+    "scrape": "node scrape.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
