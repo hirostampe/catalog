@@ -7,7 +7,11 @@
   "bin": { "lead-scraper": "scrape.js" },
   "scripts": {
     "setup": "npm install && npx playwright install chromium",
-    "scrape": "node scrape.js"
+    "scrape": "node scrape.js",
+    "worker": "node worker.js",
+    "test-collegamento": "node worker.js --test",
+    "servizio:installa": "node worker.js --installa",
+    "servizio:rimuovi": "node worker.js --rimuovi"
   },
   "engines": { "node": ">=18" },
   "dependencies": {

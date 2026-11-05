@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hirostampe Lead</title>
+  <style>
+    :root { --bg:#0e0e0e; --card:#1a1a1a; --line:#2c2c2c; --text:#f4f4f4; --muted:#9a9a9a; --yellow:#FFD60A; --green:#3ddc84; --red:#ff5c5c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+    main { max-width:520px; margin:0 auto; padding:20px 16px 48px; }
+    h1 { font-size:24px; margin:4px 0 2px; letter-spacing:-.3px; }
+    h1 span { background:var(--yellow); color:#000; padding:0 6px; border-radius:4px; }
+    .status { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:14px; margin-bottom:18px; }
+    .dot { width:10px; height:10px; border-radius:50%; background:var(--muted); }
+    .dot.on { background:var(--green); box-shadow:0 0 8px var(--green); }
+    .dot.off { background:var(--red); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:16px; }
+    label { display:block; font-size:13px; color:var(--muted); margin:12px 0 6px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+    label:first-child { margin-top:0; }
+    input[type=text], input[type=number], textarea { width:100%; padding:13px 12px; border-radius:10px; border:1px solid var(--line); background:#111; color:var(--text); font-size:16px; }
+    input:focus, textarea:focus { outline:2px solid var(--yellow); border-color:transparent; }
+    textarea { min-height:70px; resize:vertical; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .chip { border:1px solid var(--line); background:#111; color:var(--text); border-radius:999px; padding:7px 12px; font-size:14px; cursor:pointer; }
+    .chip:active { background:var(--yellow); color:#000; }
+    .row { display:flex; gap:12px; }
+    .row > div { flex:1; }
+    .toggle { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--line); margin-top:12px; }
+    .toggle + .toggle { margin-top:0; }
+    .toggle input { width:22px; height:22px; accent-color:var(--yellow); }
+    details { margin-top:12px; border-top:1px solid var(--line); padding-top:12px; }
+    summary { cursor:pointer; color:var(--muted); font-size:14px; }
+    button.go { width:100%; margin-top:16px; padding:15px; border:0; border-radius:12px; background:var(--yellow); color:#000; font-size:17px; font-weight:800; cursor:pointer; }
+    button.go:disabled { opacity:.5; }
+    .msg { margin-top:10px; font-size:14px; min-height:20px; }
+    .msg.err { color:var(--red); }
+    .msg.ok { color:var(--green); }
+    h2 { font-size:15px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:24px 0 10px; display:flex; justify-content:space-between; align-items:center; }
+    h2 a { color:var(--yellow); text-transform:none; letter-spacing:0; font-size:14px; text-decoration:none; font-weight:600; }
+    .req { padding:12px 0; border-bottom:1px solid var(--line); }
+    .req:last-child { border-bottom:0; }
+    .req .top { display:flex; justify-content:space-between; gap:8px; font-weight:600; }
+    .req .sub { color:var(--muted); font-size:13px; margin-top:3px; }
+    .badge { font-size:12px; padding:2px 8px; border-radius:999px; white-space:nowrap; font-weight:700; }
+    .b-coda { background:#333; color:#ddd; }
+    .b-corso { background:var(--yellow); color:#000; }
+    .b-fatto { background:#163d27; color:var(--green); }
+    .b-errore { background:#3d1616; color:var(--red); }
+    .empty { color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<main id="app" data-k="<?= key ?>">
+  <h1>Hirostampe <span>Lead</span></h1>
+  <div class="status"><div class="dot" id="dot"></div><div id="mac">Controllo il Mac…</div></div>
+
+  <div class="card">
+    <label for="nicchia">Cosa cerco</label>
+    <input type="text" id="nicchia" placeholder="es. box crossfit, bacaro">
+    <div class="chips" id="chips"></div>
+
+    <label for="citta">Dove</label>
+    <input type="text" id="citta" placeholder="es. Mestre, Treviso, Padova">
+    <div class="chips" id="chipsCitta"></div>
+
+    <div class="row">
+      <div>
+        <label for="max">Max per ricerca</label>
+        <input type="number" id="max" value="20" min="1" max="120" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="toggle"><span>Cerca email/social sui siti</span><input type="checkbox" id="siti" checked></div>
+    <div class="toggle"><span>Leggi follower Instagram</span><input type="checkbox" id="instagram" checked></div>
+
+    <details>
+      <summary>Oppure: solo profili Instagram</summary>
+      <label for="profili">Un profilo per riga (@nome o link)</label>
+      <textarea id="profili" placeholder="@crossfitvenezia&#10;https://instagram.com/bacarodaxxx"></textarea>
+    </details>
+
+    <button class="go" id="go" onclick="invia()">Cerca lead</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <h2>Ultime richieste <a href="<?= sheetUrl ?>" target="_blank">Apri lo Sheet →</a></h2>
+  <div class="card" id="lista"><div class="empty">Carico…</div></div>
+</main>
+
+<script>
+  var KEY = document.getElementById('app').getAttribute('data-k');
+  var NICCHIE = ['box crossfit', 'palestra', 'scuola di danza', 'padel', 'pilates', 'bacaro', 'bar', 'pizzeria', 'barbiere', 'tatuatore'];
+  var CITTA = ['Venezia', 'Mestre', 'Treviso', 'Padova', 'Milano'];
+
+  function chips(id, list, inputId) {
+    var box = document.getElementById(id);
+    list.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = t;
+      b.onclick = function () {
+        var el = document.getElementById(inputId);
+        var parts = el.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        if (parts.indexOf(t) < 0) parts.push(t);
+        el.value = parts.join(', ');
+      };
+      box.appendChild(b);
+    });
+  }
+  chips('chips', NICCHIE, 'nicchia');
+  chips('chipsCitta', CITTA, 'citta');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function badge(stato) {
+    var cls = { 'In coda': 'b-coda', 'In corso': 'b-corso', 'Fatto': 'b-fatto', 'Errore': 'b-errore' }[stato] || 'b-coda';
+    return '<span class="badge ' + cls + '">' + esc(stato || '—') + '</span>';
+  }
+
+  function render(s) {
+    var dot = document.getElementById('dot');
+    dot.className = 'dot ' + (s.macOnline ? 'on' : 'off');
+    document.getElementById('mac').textContent = s.macOnline
+      ? 'Mac acceso e pronto'
+      : 'Mac non raggiungibile (ultimo contatto: ' + s.macVisto + '). Le richieste restano in coda.';
+    var l = document.getElementById('lista');
+    if (!s.richieste.length) { l.innerHTML = '<div class="empty">Nessuna richiesta ancora.</div>'; return; }
+    l.innerHTML = s.richieste.map(function (r) {
+      var risultato = r.stato === 'Fatto' ? (r.nuovi || 0) + ' nuovi' + (r.aggiornati ? ' · ' + r.aggiornati + ' aggiornati' : '') : '';
+      return '<div class="req"><div class="top"><span>' + esc(r.nicchia) + (r.citta ? ' · ' + esc(r.citta) : '') + '</span>' + badge(r.stato) + '</div>' +
+        '<div class="sub">' + esc(r.data) + (risultato ? ' · <b>' + esc(risultato) + '</b>' : '') + (r.note ? ' · ' + esc(r.note) : '') + '</div></div>';
+    }).join('');
+  }
+
+  function aggiorna() {
+    google.script.run.withSuccessHandler(render).withFailureHandler(function (e) {
+      document.getElementById('mac').textContent = 'Errore: ' + e.message;
+    }).getStatus(KEY);
+  }
+
+  function invia() {
+    var msg = document.getElementById('msg');
+    var form = {
+      nicchia: document.getElementById('nicchia').value,
+      citta: document.getElementById('citta').value,
+      max: document.getElementById('max').value,
+      siti: document.getElementById('siti').checked,
+      instagram: document.getElementById('instagram').checked,
+      profili_ig: document.getElementById('profili').value
+    };
+    if (!form.nicchia.trim() && !form.profili_ig.trim()) { msg.className = 'msg err'; msg.textContent = 'Scrivi cosa cercare.'; return; }
+    var go = document.getElementById('go');
+    go.disabled = true; msg.className = 'msg'; msg.textContent = 'Invio…';
+    google.script.run.withSuccessHandler(function (s) {
+      go.disabled = false; msg.className = 'msg ok';
+      msg.textContent = 'Richiesta in coda. I lead arrivano nello Sheet appena il Mac finisce.';
+      document.getElementById('nicchia').value = ''; document.getElementById('profili').value = '';
+      render(s);
+    }).withFailureHandler(function (e) {
+      go.disabled = false; msg.className = 'msg err'; msg.textContent = e.message;
+    }).addRequest(KEY, form);
+  }
+
+  aggiorna();
+  setInterval(aggiorna, 20000);
+</script>
+</body>
+</html>
