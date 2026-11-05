@@ -33,6 +33,25 @@ browser in cui sei collegato a Instagram.
 
 Per chiudere l'app chiudi la finestra del terminale.
 
+## Top per nicchia: trovare i video con più views
+
+Nella scheda **🔥 Top per nicchia** scegli una nicchia (CrossFit, Palestra, Danza,
+Padel, Bar e locali…) oppure scrivi i tuoi hashtag, scegli Instagram e/o TikTok, il
+periodo e le views minime, poi premi **Cerca i top**. In 1-3 minuti ottieni una
+classifica dei video ordinabile per:
+- **più visualizzazioni**;
+- **più coinvolgimento** ((like + commenti) / views);
+- **più views rispetto ai follower** (solo TikTok). Questo è il segnale migliore di
+  un *formato* che funziona: un profilo piccolo che fa numeri grossi.
+
+Spunta i video che ti interessano e premi **Analizza selezionati**: finiscono in
+Libreria con il pacchetto pronto per Claude.
+
+La ricerca usa **Apify** (servizio a pagamento a consumo, circa 0,3 centesimi di
+dollaro per video trovato). La prima volta: ⚙︎ Impostazioni → incolla il tuo token
+Apify (apify.com → Settings → API & Integrations). Il token resta salvato solo sul
+tuo computer, in `impostazioni.json`.
+
 ## Uso da riga di comando (alternativa)
 
 ```
