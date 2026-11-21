@@ -83,7 +83,8 @@ class JRC:
                 r = self.s.request(metodo, url, timeout=30, **kw)
                 self._ultima = time.time()
                 r.raise_for_status()
-                r.encoding = r.encoding or "utf-8"
+                if "charset" not in r.headers.get("Content-Type", "").lower():
+                    r.encoding = "utf-8"  # il sito non dichiara la codifica: è UTF-8
                 return r
             except (requests.ConnectionError, requests.Timeout):
                 self._ultima = time.time()
@@ -233,7 +234,7 @@ class JRC:
                 celle = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
                 if len(celle) < 2 or not celle[0] or tr.find("input"):
                     continue
-                valori = {t: numero(v) for t, v in zip(taglie, celle[1:]) if t}
+                valori = {t: numero(v) for t, v in zip(taglie, celle[1:]) if t and numero(v) is not None}
                 if any(v is not None for v in valori.values()):
                     blocchi.append({"riga": celle[0], "per_taglia": valori})
             return blocchi
@@ -246,6 +247,10 @@ class JRC:
         if not risultati and len(parole) > 1:
             # il sito cerca la frase intera: riprova senza le parole-colore
             risultati = self.cerca(parole[0])
+        # prima i modelli che esistono nel colore chiesto (es. "polo navy")
+        def ha_colore(r):
+            return any(c["colore"].lower() in q.lower() for c in r["colori"])
+        risultati.sort(key=lambda r: not ha_colore(r))
         schede = []
         for r in risultati[:massimo]:
             # se nella richiesta c'è un colore, apri quella variante
