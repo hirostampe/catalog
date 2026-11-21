@@ -98,7 +98,7 @@ class JRC:
     def login(self):
         user, pwd = os.environ.get("JRC_USER"), os.environ.get("JRC_PASS")
         if not user or not pwd:
-            raise SystemExit("Mancano JRC_USER e JRC_PASS nel file .env")
+            raise RuntimeError("Mancano JRC_USER e JRC_PASS nel file .env")
         self.s.cookies.clear()
         self._get("/login.html")  # prende il cookie di sessione
         self._req("POST", "/autentica.html",
@@ -156,7 +156,7 @@ class JRC:
             for c in r["colori"]:
                 if c["cod"].split("-")[0] == cod.split("-")[0]:
                     return self.articolo(r["id"], c["cod"])
-        raise SystemExit(f"Codice {cod} non trovato")
+        raise RuntimeError(f"Codice {cod} non trovato su James Ross")
 
     def _leggi_scheda(self, html, pid, cod):
         soup = BeautifulSoup(html, "html.parser")
