@@ -114,8 +114,11 @@ class IWear:
         return {"totale": int(m.group(1)) if m else len(out), "risultati": out}
 
     # ---- scheda ----
-    def articolo(self, codice):
-        path = f"/vendita/{codice.strip().lower()}"
+    def articolo(self, codice, filtro_colore=None):
+        codice = codice.strip()
+        if " " in codice and not filtro_colore:  # es. "JC052 navy"
+            codice, filtro_colore = codice.split(" ", 1)
+        path = f"/vendita/{codice.lower()}"
         html = self._pagina(path)
         soup = BeautifulSoup(html, "html.parser")
         out = {"fornitore": "Innovative Wear", "codice": codice.upper(), "url": BASE + path}
@@ -137,37 +140,67 @@ class IWear:
                 out["colori"].append(c)
         # disponibilità e prezzi: una riga per colore dentro #js_buyingArea
         area = soup.select_one("#js_buyingArea")
-        out["disponibilita"] = self._leggi_area(area) if area else []
+        disp = self._leggi_area(area) if area else []
+        if filtro_colore:
+            parole = [w for w in filtro_colore.lower().split() if len(w) > 1]
+            scelti = [c for c in disp if any(w in c["colore"].lower() for w in parole)]
+            disp = scelti or disp
+        if len(disp) > 8:
+            out["nota"] = (f"Mostro 8 colori su {len(disp)}. Per un colore preciso chiedi la scheda con "
+                           f"codice '{codice.upper()} <colore>', es. '{codice.upper()} navy'.")
+            disp = disp[:8]
+        out["disponibilita"] = disp
+        out["legenda"] = "prezzo = € unitario IVA esclusa; 'disp. 1/2 gg' e 'disp. 5/6 gg' = pezzi disponibili con quei tempi di consegna"
         return out
 
     @staticmethod
     def _leggi_area(area):
-        """Legge la tabella acquisto. Per ogni colore: taglie con stock e prezzo se riconoscibili,
-        più il testo della riga (così i dati restano leggibili anche se il layout cambia)."""
-        righe = []
-        blocchi = area.select("div.js_variationRow") or [area]
-        for b in blocchi:
-            r = {"colore": b.get("id")}
-            taglie = []
-            for inp in b.select("input.js_quantity, input.js_changeQuantity"):
-                var = inp.get("data-variation")
-                cella = inp.find_parent(["td", "div"])
-                riga = inp.find_parent("tr") or cella
-                t = {"variante": var}
-                prezzo = b.select_one(f"#price_for{var}") if var else None
+        """Tabella acquisto: un blocco per colore; per ogni taglia prezzo unitario,
+        disponibilità per tempi di consegna (1/2 gg, 5/6 gg…), arrivi, outlet."""
+        colori = []
+        for b in area.select("div.js_variationRow"):
+            lab = b.select_one("p.colorLabel")
+            col = {"colore": _pulisci(lab.get_text(" ")) if lab else b.get("id"), "codice_colore": b.get("id"),
+                   "taglie": {}}
+            tabella = None
+            for t in b.select("table"):
+                if t.select("td"):
+                    tabella = t
+                    break
+            if not tabella:
+                continue
+            taglie = [_pulisci(th.get_text()) for th in tabella.select("tr.tableHeader th")][1:]
+            celle = tabella.select("tr:not(.tableHeader) > td")
+            if not celle:
+                continue
+            # prima colonna = etichette (Prezzo unit., Quantità, Consegna 1/2 gg, Consegna 5/6 gg, Arrivi)
+            etichette = []
+            for p_ in celle[0].find_all("p"):
+                cls = " ".join(p_.get("class", []))
+                testo = _pulisci(p_.get_text())
+                if "pPrice" in cls or "qty" in cls:
+                    continue
+                etichette.append((p_.get("class", [""])[0], testo.lower()))
+            for taglia, td in zip(taglie, celle[1:]):
+                d = {}
+                prezzo = td.select_one("p.pPrice")
                 if prezzo:
-                    t["prezzo"] = numero(prezzo.get_text())
-                for k in ("data-size", "data-taglia", "data-stock", "data-availability", "max"):
-                    if inp.get(k):
-                        t[k.replace("data-", "")] = inp.get(k)
-                if riga is not None and riga is not cella:
-                    t["testo_riga"] = _pulisci(riga.get_text(" | "))[:200]
-                taglie.append(t)
-            if taglie:
-                r["taglie"] = taglie
-            r["testo"] = _pulisci(b.get_text(" | "))[:1500]
-            righe.append(r)
-        return righe
+                    d["prezzo"] = numero(prezzo.get_text())
+                for classe, nome in etichette:
+                    p_ = td.find("p", class_=classe)
+                    if p_ is None:
+                        continue
+                    v = _pulisci(p_.get_text())
+                    n = numero(v) if re.fullmatch(r"[\d.]+", v) else None
+                    d[nome.replace("consegna ", "disp. ")] = n if n is not None else v
+                inp = td.select_one("input[data-variation]")
+                if inp:
+                    d["variante"] = inp["data-variation"]
+                if td.select_one(".ribbonOutlet"):
+                    d["outlet"] = True
+                col["taglie"][taglia] = d
+            colori.append(col)
+        return colori
 
     def prezzi_quantita(self, variante):
         """Scaglioni di prezzo per quantità di una variante (popup 'Prezzi per quantità')."""
@@ -180,7 +213,13 @@ class IWear:
 
     def cerca_completo(self, q, massimo=5):
         res = self.cerca(q)
-        schede = [self.articolo(r["codice"]) for r in res["risultati"][:massimo]]
+        if not res["risultati"] and len(q.split()) > 1:
+            res = self.cerca(q.split()[0])
+        colori_noti = ("navy", "blu", "nero", "black", "bianco", "white", "rosso", "red", "grigio", "grey",
+                       "gray", "verde", "green", "royal", "giallo", "yellow", "arancio", "orange", "rosa", "pink",
+                       "bordeaux", "burgundy", "maroon", "azzurro", "sky", "beige", "sand", "kaki", "khaki", "viola", "purple")
+        filtro = " ".join(w for w in q.lower().split() if w in colori_noti) or None
+        schede = [self.articolo(r["codice"], filtro) for r in res["risultati"][:massimo]]
         return {"richiesta": q, "trovati": res["totale"], "elenco": res["risultati"][:24], "articoli": schede}
 
     def diagnosi(self, codice):
