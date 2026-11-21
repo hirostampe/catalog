@@ -13,6 +13,7 @@ import anyio
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
+import iwear
 import jrc
 
 jrc.carica_env()
@@ -23,8 +24,8 @@ if len(SEGRETO) < 20:
 mcp = FastMCP(
     "Fornitori Hirostampe",
     instructions=(
-        "Cerca articoli, varianti, prezzi rivenditore e giacenze per taglia sul sito del "
-        "fornitore James Ross (JRC), col login di Hirostampe. Prezzi in euro IVA esclusa: "
+        "Cerca articoli, varianti, prezzi rivenditore e giacenze sui siti dei fornitori di Hirostampe: "
+        "James Ross (JRC) e Innovative Wear, col login di Hirostampe. Prezzi James Ross in euro IVA esclusa: "
         "'scatola' = cartone intero, 'sfuso' = quantità sciolte, '1 pezzo' = singolo capo."
     ),
     host="127.0.0.1",
@@ -67,6 +68,43 @@ async def articolo_james_ross(codice: str) -> dict:
     Per un altro colore usa il codice di quella variante (lista 'colori' della scheda).
     """
     return await anyio.to_thread.run_sync(_in_coda, _bot.articolo_da_codice, codice.strip())
+
+
+_iw = iwear.IWear()
+
+
+@mcp.tool()
+async def cerca_innovative_wear(richiesta: str, max_articoli: int = 5) -> dict:
+    """Cerca nel catalogo Innovative Wear (Gildan, Fruit of the Loom, Russell, Just Hoods,
+    Stedman, Premier, Regatta, Atlantis…). Restituisce l'elenco dei risultati (codice, nome,
+    marca) e la scheda completa dei primi `max_articoli`: composizione, grammatura, cartone,
+    colori, e per ogni colore disponibilità e prezzi per taglia.
+
+    richiesta: parole semplici o un codice articolo, es. "felpa cappuccio", "gildan 18500", "JC052".
+    max_articoli: quante schede aprire (1-10, ~3 secondi l'una).
+    """
+    n = max(1, min(int(max_articoli), 10))
+    return await anyio.to_thread.run_sync(_in_coda, _iw.cerca_completo, richiesta, n)
+
+
+@mcp.tool()
+async def articolo_innovative_wear(codice: str) -> dict:
+    """Scheda completa di un articolo Innovative Wear dal codice (es. "JC052", "18500"):
+    colori, taglie, prezzi e disponibilità in tempo reale."""
+    return await anyio.to_thread.run_sync(_in_coda, _iw.articolo, codice.strip())
+
+
+@mcp.tool()
+async def prezzi_quantita_innovative_wear(variante: str) -> str:
+    """Scaglioni di prezzo per quantità di una variante Innovative Wear (id 'variante'
+    preso dalla scheda articolo)."""
+    return await anyio.to_thread.run_sync(_in_coda, _iw.prezzi_quantita, variante.strip())
+
+
+@mcp.tool()
+async def diagnosi_innovative_wear(codice: str) -> dict:
+    """Solo per manutenzione: HTML dell'area acquisto di una scheda Innovative Wear (da loggato)."""
+    return await anyio.to_thread.run_sync(_in_coda, _iw.diagnosi, codice.strip())
 
 
 @mcp.tool()
