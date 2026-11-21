@@ -150,7 +150,7 @@ class IWear:
                            f"codice '{codice.upper()} <colore>', es. '{codice.upper()} navy'.")
             disp = disp[:8]
         out["disponibilita"] = disp
-        out["legenda"] = "prezzo = € unitario IVA esclusa; 'disp. 1/2 gg' e 'disp. 5/6 gg' = pezzi disponibili con quei tempi di consegna"
+        out["legenda"] = "prezzo = € unitario IVA esclusa; 'disp. 1/2 gg' e 'disp. 5/6 gg' = pezzi disponibili con quei tempi di consegna; 'dispo. fornitore' = ordinabili al produttore (tempi più lunghi); 'Agg' = in aggiornamento"
         return out
 
     @staticmethod
@@ -185,7 +185,7 @@ class IWear:
                 d = {}
                 prezzo = td.select_one("p.pPrice")
                 if prezzo:
-                    d["prezzo"] = numero(prezzo.get_text())
+                    d["prezzo"] = numero(prezzo.get_text()) or None  # 0,00 = non ordinabile
                 for classe, nome in etichette:
                     p_ = td.find("p", class_=classe)
                     if p_ is None:
