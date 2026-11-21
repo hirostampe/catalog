@@ -72,46 +72,70 @@ async def articolo_james_ross(codice: str) -> dict:
 
 _iw = iwear.IWear()
 
+# Fornitori disponibili: per aggiungerne uno basta registrarlo qui (i comandi restano gli stessi)
+FORNITORI = {
+    "james_ross": {"nome": "James Ross (JRC)", "cerca": _bot.cerca_completo,
+                   "scheda": _bot.articolo_da_codice, "diagnosi": _bot.diagnosi},
+    "innovative_wear": {"nome": "Innovative Wear (Gildan, Fruit, Russell, Just Hoods, Stedman, Premier…)",
+                        "cerca": _iw.cerca_completo, "scheda": _iw.articolo, "diagnosi": _iw.diagnosi},
+}
+
+
+def _scegli(fornitore):
+    f = (fornitore or "").strip().lower().replace(" ", "_")
+    if f not in FORNITORI:
+        raise ValueError(f"Fornitore '{fornitore}' sconosciuto. Disponibili: {', '.join(FORNITORI)}")
+    return FORNITORI[f]
+
 
 @mcp.tool()
-async def cerca_innovative_wear(richiesta: str, max_articoli: int = 5) -> dict:
-    """Cerca nel catalogo Innovative Wear (Gildan, Fruit of the Loom, Russell, Just Hoods,
-    Stedman, Premier, Regatta, Atlantis…). Restituisce l'elenco dei risultati (codice, nome,
-    marca) e la scheda completa dei primi `max_articoli`: composizione, grammatura, cartone,
-    colori, e per ogni colore disponibilità e prezzi per taglia.
+async def elenco_fornitori() -> dict:
+    """Elenco dei fornitori collegati (chiave da usare negli altri comandi + descrizione)."""
+    return {k: v["nome"] for k, v in FORNITORI.items()}
 
-    richiesta: parole semplici o un codice articolo, es. "felpa cappuccio", "gildan 18500", "JC052".
-    max_articoli: quante schede aprire (1-10, ~3 secondi l'una).
+
+@mcp.tool()
+async def cerca_articoli(richiesta: str, fornitore: str = "tutti", max_articoli: int = 3) -> dict:
+    """Cerca articoli sui siti dei fornitori di Hirostampe col login rivenditore e restituisce
+    per ogni articolo: nome, codice, colori, taglie, prezzi e disponibilità/giacenze.
+
+    richiesta: parole semplici come nella ricerca del sito ("felpa", "polo navy", "gildan 18500")
+               o un codice articolo.
+    fornitore: "tutti" (default) oppure una chiave di elenco_fornitori, es. "james_ross",
+               "innovative_wear".
+    max_articoli: schede da aprire PER fornitore (1-10, ~3 secondi l'una).
     """
     n = max(1, min(int(max_articoli), 10))
-    return await anyio.to_thread.run_sync(_in_coda, _iw.cerca_completo, richiesta, n)
+    scelti = FORNITORI if (fornitore or "tutti").lower() == "tutti" else {fornitore: _scegli(fornitore)}
+    out = {}
+    for chiave, f in scelti.items():
+        try:
+            out[chiave] = await anyio.to_thread.run_sync(_in_coda, f["cerca"], richiesta, n)
+        except Exception as e:  # un fornitore in errore non blocca gli altri
+            out[chiave] = {"errore": str(e)}
+    return out
 
 
 @mcp.tool()
-async def articolo_innovative_wear(codice: str) -> dict:
-    """Scheda completa di un articolo Innovative Wear dal codice (es. "JC052", "18500"):
-    colori, taglie, prezzi e disponibilità in tempo reale."""
-    return await anyio.to_thread.run_sync(_in_coda, _iw.articolo, codice.strip())
+async def scheda_articolo(fornitore: str, codice: str) -> dict:
+    """Scheda completa e aggiornata di un articolo (prezzi, colori, taglie, disponibilità).
+    fornitore: chiave di elenco_fornitori ("james_ross", "innovative_wear"); codice: es. "987690", "JC052"."""
+    f = _scegli(fornitore)
+    return await anyio.to_thread.run_sync(_in_coda, f["scheda"], codice.strip())
 
 
 @mcp.tool()
 async def prezzi_quantita_innovative_wear(variante: str) -> str:
-    """Scaglioni di prezzo per quantità di una variante Innovative Wear (id 'variante'
-    preso dalla scheda articolo)."""
+    """Scaglioni di prezzo per quantità di una variante Innovative Wear (id 'variante' della scheda)."""
     return await anyio.to_thread.run_sync(_in_coda, _iw.prezzi_quantita, variante.strip())
 
 
 @mcp.tool()
-async def diagnosi_innovative_wear(codice: str) -> dict:
-    """Solo per manutenzione: HTML dell'area acquisto di una scheda Innovative Wear (da loggato)."""
-    return await anyio.to_thread.run_sync(_in_coda, _iw.diagnosi, codice.strip())
-
-
-@mcp.tool()
-async def diagnosi_james_ross(codice: str) -> dict:
-    """Solo per manutenzione: restituisce pezzi dell'HTML della scheda (da loggato) attorno
-    a prezzi e peso, per capire perché un dato non viene letto. Non usarlo per le ricerche."""
-    return await anyio.to_thread.run_sync(_in_coda, _bot.diagnosi, codice.strip())
+async def diagnosi_fornitore(fornitore: str, codice: str) -> dict:
+    """Solo per manutenzione: HTML della scheda (da loggato) per correggere la lettura dei dati.
+    Non usarlo per le ricerche."""
+    f = _scegli(fornitore)
+    return await anyio.to_thread.run_sync(_in_coda, f["diagnosi"], codice.strip())
 
 
 if __name__ == "__main__":
