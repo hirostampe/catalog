@@ -14,6 +14,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 import iwear
+import tbint
 import jrc
 
 jrc.carica_env()
@@ -78,6 +79,8 @@ FORNITORI = {
                    "scheda": _bot.articolo_da_codice, "diagnosi": _bot.diagnosi},
     "innovative_wear": {"nome": "Innovative Wear (Gildan, Fruit, Russell, Just Hoods, Stedman, Premier…)",
                         "cerca": _iw.cerca_completo, "scheda": _iw.articolo, "diagnosi": _iw.diagnosi},
+    "urban_classics": {"nome": "TB International: Urban Classics, Build Your Brand, Flexfit (file ufficiali FTP)",
+                       "cerca": tbint.cerca_completo, "scheda": tbint.scheda, "diagnosi": tbint.diagnosi},
 }
 
 
