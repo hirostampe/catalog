@@ -69,6 +69,13 @@ async def articolo_james_ross(codice: str) -> dict:
     return await anyio.to_thread.run_sync(_in_coda, _bot.articolo_da_codice, codice.strip())
 
 
+@mcp.tool()
+async def diagnosi_james_ross(codice: str) -> dict:
+    """Solo per manutenzione: restituisce pezzi dell'HTML della scheda (da loggato) attorno
+    a prezzi e peso, per capire perché un dato non viene letto. Non usarlo per le ricerche."""
+    return await anyio.to_thread.run_sync(_in_coda, _bot.diagnosi, codice.strip())
+
+
 if __name__ == "__main__":
     print(f"Connettore attivo su 127.0.0.1:{mcp.settings.port}{mcp.settings.streamable_http_path}")
     mcp.run(transport="streamable-http")

@@ -179,18 +179,44 @@ class JRC:
                 out["colori"].append({"colore": a["title"].strip(), "cod": m.group(1)})
         testo = BeautifulSoup(principale, "html.parser").get_text("\n", strip=True)
         piatto = re.sub(r"\s+", " ", testo)
-        # prezzi: "Prezzo Scatola: 24,60 €" ecc.
+        intero = re.sub(r"\s+", " ", soup.get_text(" ", strip=True))
+        # prezzi: "Prezzo Scatola: 24,60 €" (cerca prima nella scheda, poi in tutta la pagina,
+        # poi nell'HTML grezzo nel caso il valore stia in uno script o attributo)
         out["prezzi"] = {}
-        for m in re.finditer(r"Prezzo ([\w ]{1,20}?)\s*:\s*([\d.,]+)\s*€", piatto):
-            out["prezzi"][m.group(1).strip().lower()] = numero(m.group(2))
-        m = re.search(r"CARTONE\s+(\d+)\s*pezzi", piatto, re.I)
+        crudo = re.sub(r"<[^>]+>", " ", html).replace("&euro;", "€").replace("&nbsp;", " ")
+        crudo = re.sub(r"\s+", " ", crudo)
+        for fonte in (piatto, intero, crudo):
+            for m in re.finditer(r"Prezzo\s*(Scatola|Sfuso|1\s*Pezzo|Cartone|Unitario)\s*:?\s*(?:€\s*)?(\d{1,4}[.,]\d{2})",
+                                 fonte, re.I):
+                out["prezzi"].setdefault(re.sub(r"\s+", " ", m.group(1)).lower(), numero(m.group(2)))
+            if out["prezzi"]:
+                break
+        m = re.search(r"CARTONE\s*:?\s*(\d+)\s*pezzi", intero, re.I)
         out["cartone_pezzi"] = int(m.group(1)) if m else None
-        m = re.search(r"PESO\s+([^\n]{1,40}?g/m²(?:\s*\+\s*[\d.,]+\s*g/m²)?)", piatto, re.I)
+        m = re.search(r"PESO\s*:?\s*(\d[\d.,]*\s*(?:g/m\S*|gr\S*)(?:\s*\+\s*[\d.,]+\s*(?:g/m\S*|gr\S*))?)", intero, re.I)
         out["peso"] = m.group(1).strip() if m else None
         out["giacenze"] = self._leggi_giacenze(soup)
         if not out["prezzi"]:
             DEBUG_DIR.mkdir(exist_ok=True)
             (DEBUG_DIR / f"scheda-{pid}-{cod}.html").write_text(html)
+        return out
+
+    def diagnosi(self, cod):
+        """Estratti di testo della scheda (da loggato) attorno a prezzi e peso, per correggere il bot."""
+        pid = None
+        for r in self.cerca(cod):
+            if any(c["cod"].split("-")[0] == cod.split("-")[0] for c in r["colori"]):
+                pid = r["id"]
+                break
+        if not pid:
+            raise RuntimeError(f"Codice {cod} non trovato")
+        html = self._pagina_prodotto(pid, cod)
+        out = {"id": pid, "lunghezza_html": len(html), "estratti_html": []}
+        for parola in ("Prezzo", "PESO", "Prodotti Correlati"):
+            for m in list(re.finditer(parola, html))[:4]:
+                pezzo = html[max(0, m.start() - 150): m.start() + 450]
+                pezzo = re.sub(r'(name|value)="[^"]*(pass|token|session)[^"]*"', r'\1="***"', pezzo, flags=re.I)
+                out["estratti_html"].append(pezzo)
         return out
 
     @staticmethod
