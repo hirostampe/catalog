@@ -238,7 +238,7 @@ def costruisci_indice():
         con.executemany("INSERT OR IGNORE INTO art VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", lotto)
     # disponibilità: formati diversi a seconda del file
     for p in sorted(DATI.glob("*/*")):
-        if not p.is_file() or "avai" not in p.name.lower():
+        if not p.is_file() or not p.name.lower().startswith("ava"):
             continue
         it = _righe(p)
         h = {n.strip().lower(): k for k, n in enumerate(next(it, []))}
