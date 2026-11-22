@@ -26,7 +26,7 @@ from jrc import carica_env
 HERE = Path(__file__).resolve().parent
 DATI = HERE / "dati" / "tbint"
 HOST = "ftp.tbint.de"
-VALIDITA = 6 * 3600  # secondi prima di riscaricare
+VALIDITA = 26 * 3600  # in ricerca riscarica solo se i file hanno più di 26 ore (il cron li aggiorna ogni 6)
 ESTENSIONI = (".csv", ".txt", ".xlsx", ".xls", ".zip", ".json", ".xml")
 MAX_FILE = 300 * 1024 * 1024
 
@@ -300,6 +300,10 @@ def _stile(con, stile, colori_filtro=None):
         if r["prossimo_arrivo"]:
             t["arrivo"] = r["prossimo_arrivo"] + (f" ({r['qta_in_arrivo']} pz)" if r["qta_in_arrivo"] else "")
         out["per_colore"].setdefault(r["colore"], {})[r["taglia"]] = t
+    ordine = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL"]
+    pos = lambda t: ordine.index(t.upper()) if t.upper() in ordine else 100
+    out["per_colore"] = {c: dict(sorted(d.items(), key=lambda kv: (pos(kv[0]), kv[0])))
+                         for c, d in out["per_colore"].items()}
     if not colori_filtro and len(out["per_colore"]) > 6:
         tot = {c: sum(v["stock"] for v in d.values() if isinstance(v["stock"], int)) for c, d in out["per_colore"].items()}
         tenuti = sorted(tot, key=tot.get, reverse=True)[:6]
@@ -329,7 +333,7 @@ def cerca(q, massimo=5):
     return {"fornitore": "TB International (Urban Classics, Build Your Brand, Flexfit, Mister Tee…)",
             "richiesta": q, "articoli": [a for a in articoli if a],
             "legenda": "prezzo = prezzo all'ingrosso € (listino TB); stock = pezzi a magazzino ora; "
-                       "dati dai file ufficiali FTP, aggiornati ogni 6 ore."}
+                       "dati dai file ufficiali FTP (aggiornati ogni 6 ore); verifica lo stock prima di confermare ordini grandi."}
 
 
 def cerca_completo(q, massimo=5):
