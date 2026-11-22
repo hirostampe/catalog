@@ -14,6 +14,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 import iwear
+import meta
 import tbint
 import jrc
 
@@ -139,6 +140,37 @@ async def diagnosi_fornitore(fornitore: str, codice: str) -> dict:
     Non usarlo per le ricerche."""
     f = _scegli(fornitore)
     return await anyio.to_thread.run_sync(_in_coda, f["diagnosi"], codice.strip())
+
+
+@mcp.tool()
+async def meta_ads_campagne(periodo: str = "last_30d", livello: str = "campaign") -> dict:
+    """Rendimento delle campagne Meta Ads (Facebook/Instagram) di Hirostampe dalle API ufficiali:
+    spesa, copertura, frequenza, clic, CTR, CPM, risultati (lead, conversazioni avviate, acquisti…)
+    e costo per risultato.
+    periodo: today, yesterday, last_7d, last_14d, last_30d, last_90d, this_month, last_month, maximum.
+    livello: "campaign" (default), "adset" o "ad" (per vedere i singoli annunci migliori/peggiori)."""
+    return await anyio.to_thread.run_sync(meta.campagne, periodo, livello)
+
+
+@mcp.tool()
+async def instagram_miei_contenuti(giorni: int = 30) -> dict:
+    """Post e reel di @hirostampe_venezia degli ultimi `giorni`, ordinati per views: copertura,
+    views, like, commenti, salvataggi, condivisioni, durata media di visione dei reel."""
+    return await anyio.to_thread.run_sync(meta.post, int(giorni))
+
+
+@mcp.tool()
+async def instagram_competitor(profilo: str, quanti: int = 25) -> dict:
+    """Analisi di un profilo Instagram concorrente (solo account business/creator): follower,
+    frequenza di pubblicazione, ultimi `quanti` contenuti con like, commenti, views (se disponibili)
+    ed engagement %, più i migliori 8. profilo: nome utente, es. "nomeprofilo" o "@nomeprofilo"."""
+    return await anyio.to_thread.run_sync(meta.competitor, profilo, int(quanti))
+
+
+@mcp.tool()
+async def meta_verifica() -> dict:
+    """Solo manutenzione: controlla che il token Meta funzioni e quali permessi ha."""
+    return await anyio.to_thread.run_sync(meta.verifica)
 
 
 if __name__ == "__main__":
