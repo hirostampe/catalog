@@ -332,7 +332,7 @@ def cerca(q, massimo=5):
     articoli = [_stile(con, s, colori or None) for s in stili]
     return {"fornitore": "TB International (Urban Classics, Build Your Brand, Flexfit, Mister Tee…)",
             "richiesta": q, "articoli": [a for a in articoli if a],
-            "legenda": "prezzo = prezzo all'ingrosso € (listino TB); stock = pezzi a magazzino ora; "
+            "legenda": "prezzo = prezzo d'acquisto Hirostampe € IVA esclusa (verificato); stock = pezzi a magazzino ora; "
                        "dati dai file ufficiali FTP (aggiornati ogni 6 ore); verifica lo stock prima di confermare ordini grandi."}
 
 
